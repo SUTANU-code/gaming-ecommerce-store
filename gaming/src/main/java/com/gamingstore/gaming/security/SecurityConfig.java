@@ -34,6 +34,7 @@ public class SecurityConfig {
         	    .requestMatchers("/error").permitAll()
         	    .requestMatchers("/api/ai/**").permitAll()
         	    .requestMatchers("/api/payment/**").permitAll()
+        	    .requestMatchers("/api/admin/**").hasRole("ADMIN")
         	    
 
         	    // 🛍️ PRODUCTS

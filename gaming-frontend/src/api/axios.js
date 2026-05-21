@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: process.env.REACT_APP_API_URL ||
+    "https://gaming-ecommerce-store-6.onrender.com/api",
 });
 
 // ✅ Attach token to every request

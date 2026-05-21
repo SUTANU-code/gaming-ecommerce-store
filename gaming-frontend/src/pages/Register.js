@@ -1,59 +1,39 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-toastify";
 
-function Register() {
+// 🔄 FIX: Change raw axios import to your custom centralized configuration client
+import API from "../api/axios"; 
 
-  // State variables
+function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Navigation
   const navigate = useNavigate();
 
-  // Register function
   const register = async () => {
-
     try {
+      // 🔄 FIX: Use API instance with clean relative signup endpoints
+      await API.post("/auth/signup", {
+        name,
+        email,
+        password
+      });
 
-      // API request
-      await axios.post(
-        "http://localhost:8080/api/auth/signup",
-        {
-          name,
-          email,
-          password
-        }
-      );
-
-     toast.success("Registration successful");
-
-      // Redirect to login
+      toast.success("Registration successful");
       navigate("/login");
-
     } catch (err) {
-
       console.log(err);
-
       toast.error("Registration failed");
     }
   };
 
   return (
-
     <div style={styles.container}>
-
       <div style={styles.card}>
-
         <h1 style={styles.title}>Create Account</h1>
+        <p style={styles.subtitle}>Join GameStore</p>
 
-        <p style={styles.subtitle}>
-          Join GameStore
-        </p>
-
-        {/* NAME */}
         <input
           type="text"
           placeholder="Enter Name"
@@ -61,7 +41,6 @@ function Register() {
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* EMAIL */}
         <input
           type="email"
           placeholder="Enter Email"
@@ -69,7 +48,6 @@ function Register() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Enter Password"
@@ -77,22 +55,15 @@ function Register() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* BUTTON */}
         <button style={styles.button} onClick={register}>
           Register
         </button>
 
-        {/* LOGIN LINK */}
         <p style={styles.text}>
           Already have an account?
-
-          <Link style={styles.link} to="/login">
-            Login
-          </Link>
+          <Link style={styles.link} to="/login">Login</Link>
         </p>
-
       </div>
-
     </div>
   );
 }

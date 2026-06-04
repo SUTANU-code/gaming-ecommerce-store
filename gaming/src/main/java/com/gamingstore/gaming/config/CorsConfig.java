@@ -14,13 +14,11 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
+        config.setAllowedOriginPatterns(List.of(
         	    "http://localhost:3000",
         	    "http://localhost:3002",
-        	    "https://gaming-store-react.vercel.app",
-        	    "https://gaming-store-react-3zey81wak-sutanu-codes-projects.vercel.app"
+        	    "https://*.vercel.app"
         	));
-
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",

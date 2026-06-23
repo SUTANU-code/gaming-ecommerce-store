@@ -1,130 +1,189 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-
-// 🔄 FIX: Change raw axios import to your custom centralized configuration client
-import API from "../api/axios"; 
+import API from "../api/axios";
 
 function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const register = async () => {
+    setLoading(true);
     try {
-      // 🔄 FIX: Use API instance with clean relative signup endpoints
-      await API.post("/auth/signup", {
-        name,
-        email,
-        password
-      });
-
-      toast.success("Registration successful");
+      await API.post("/auth/signup", { name, email, password });
+      toast.success("Account created! Please login.");
       navigate("/login");
     } catch (err) {
-      console.log(err);
       toast.error("Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") register();
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Create Account</h1>
-        <p style={styles.subtitle}>Join GameStore</p>
 
-        <input
-          type="text"
-          placeholder="Enter Name"
-          style={styles.input}
-          onChange={(e) => setName(e.target.value)}
-        />
+        {/* LOGO */}
+        <div style={styles.logoWrap}>
+          <span style={styles.logoIcon}>⬡</span>
+          <span style={styles.logoText}>GAME<span style={styles.logoGreen}>STORE</span></span>
+        </div>
 
-        <input
-          type="email"
-          placeholder="Enter Email"
-          style={styles.input}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <h2 style={styles.title}>Create account</h2>
+        <p style={styles.subtitle}>Join the GameStore community</p>
 
-        <input
-          type="password"
-          placeholder="Enter Password"
-          style={styles.input}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Full name</label>
+          <input
+            type="text"
+            placeholder="John Doe"
+            style={styles.input}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
 
-        <button style={styles.button} onClick={register}>
-          Register
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Email</label>
+          <input
+            type="email"
+            placeholder="you@example.com"
+            style={styles.input}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Password</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            style={styles.input}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+
+        <button
+          style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+          onClick={register}
+          disabled={loading}
+        >
+          {loading ? "Creating account..." : "Create account"}
         </button>
 
-        <p style={styles.text}>
-          Already have an account?
-          <Link style={styles.link} to="/login">Login</Link>
+        <p style={styles.bottomText}>
+          Already have an account?{" "}
+          <Link style={styles.link} to="/login">Sign in</Link>
         </p>
+
       </div>
     </div>
   );
 }
 
 const styles = {
-
-  container: {
-    height: "100vh",
+  page: {
+    minHeight: "100vh",
+    background: "#0a0a0a",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#111827"
+    fontFamily: "'Inter', sans-serif",
+    padding: "24px"
   },
-
   card: {
-    width: "350px",
-    backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "10px",
-    boxShadow: "0px 0px 15px rgba(0,0,0,0.3)",
+    width: "100%",
+    maxWidth: "400px",
+    background: "#0f0f0f",
+    border: "1px solid #1a2e1a",
+    borderRadius: "16px",
+    padding: "40px 36px",
     textAlign: "center"
   },
-
+  logoWrap: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    marginBottom: "28px"
+  },
+  logoIcon: { color: "#22c55e", fontSize: "22px" },
+  logoText: {
+    fontFamily: "'Rajdhani', sans-serif",
+    fontSize: "22px",
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: "2px"
+  },
+  logoGreen: { color: "#22c55e" },
   title: {
-    marginBottom: "10px"
+    color: "#fff",
+    fontSize: "22px",
+    fontWeight: "600",
+    marginBottom: "6px"
   },
-
   subtitle: {
-    marginBottom: "25px",
-    color: "gray"
+    color: "#6b7280",
+    fontSize: "14px",
+    marginBottom: "28px"
   },
-
+  fieldGroup: {
+    textAlign: "left",
+    marginBottom: "16px"
+  },
+  label: {
+    display: "block",
+    color: "#9ca3af",
+    fontSize: "13px",
+    fontWeight: "500",
+    marginBottom: "6px"
+  },
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    borderRadius: "5px",
-    border: "1px solid #ccc",
-    fontSize: "16px"
+    padding: "12px 14px",
+    background: "#111",
+    border: "1px solid #1f1f1f",
+    borderRadius: "10px",
+    color: "#fff",
+    fontSize: "14px",
+    outline: "none",
+    fontFamily: "'Inter', sans-serif",
+    boxSizing: "border-box"
   },
-
   button: {
     width: "100%",
-    padding: "12px",
+    padding: "13px",
+    background: "#22c55e",
     border: "none",
-    borderRadius: "5px",
-    backgroundColor: "#111827",
-    color: "white",
-    fontSize: "16px",
-    cursor: "pointer"
+    borderRadius: "10px",
+    color: "#000",
+    fontSize: "15px",
+    fontWeight: "700",
+    cursor: "pointer",
+    marginTop: "8px",
+    fontFamily: "'Inter', sans-serif",
+    letterSpacing: "0.5px",
+    transition: "opacity 0.2s"
   },
-
-  text: {
-    marginTop: "15px"
+  bottomText: {
+    color: "#6b7280",
+    fontSize: "13px",
+    marginTop: "20px"
   },
-
   link: {
-    marginLeft: "5px",
-    color: "blue",
+    color: "#22c55e",
     textDecoration: "none",
-    fontWeight: "bold"
+    fontWeight: "600"
   }
 };
 

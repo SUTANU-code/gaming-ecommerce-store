@@ -2,441 +2,288 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 
 function Orders() {
-
     const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-
         API.get("/order/user")
-            .then(res => {
-
-                setOrders(res.data);
-
-            })
-            .catch(err => {
-
-                console.log(err);
-
-            });
-
+            .then(res => setOrders(res.data))
+            .catch(err => console.log(err))
+            .finally(() => setLoading(false));
     }, []);
 
+    const statusColor = (status) => {
+        switch (status?.toUpperCase()) {
+            case "DELIVERED": return { bg: "#0f2010", color: "#22c55e", border: "#22c55e33" };
+            case "PENDING":   return { bg: "#1a1500", color: "#f59e0b", border: "#f59e0b33" };
+            case "CANCELLED": return { bg: "#2a1010", color: "#ef4444", border: "#ef444433" };
+            default:          return { bg: "#111", color: "#9ca3af", border: "#9ca3af33" };
+        }
+    };
+
     return (
-
         <div style={styles.page}>
-
-            <div style={styles.overlay}></div>
-
             <div style={styles.content}>
 
+                {/* HEADER */}
                 <div style={styles.header}>
-
+                    <div style={styles.headerTag}>Order history</div>
                     <h1 style={styles.heading}>
-                        MY ORDERS
+                        MY <span style={styles.headingGreen}>ORDERS</span>
                     </h1>
-
-                    <p style={styles.subtitle}>
-                        Track your legendary gaming purchases
-                    </p>
-
+                    <p style={styles.subtitle}>Track your legendary gaming purchases</p>
                 </div>
 
-                {orders.length === 0 && (
-
+                {/* LOADING */}
+                {loading && (
                     <div style={styles.emptyBox}>
-
-                        <h2 style={styles.emptyText}>
-                            📦 No Orders Found
-                        </h2>
-
-                        <p style={styles.emptySubText}>
-                            Your purchased games will appear here
-                        </p>
-
+                        <p style={styles.emptySubText}>Loading orders...</p>
                     </div>
-
                 )}
 
-                {orders.map(o => (
+                {/* EMPTY */}
+                {!loading && orders.length === 0 && (
+                    <div style={styles.emptyBox}>
+                        <div style={styles.emptyIcon}>📦</div>
+                        <h2 style={styles.emptyText}>No orders yet</h2>
+                        <p style={styles.emptySubText}>Your purchased games will appear here</p>
+                    </div>
+                )}
 
-                    <div
-                        key={o.id}
-                        style={styles.orderCard}
+                {/* ORDER CARDS */}
+                <div style={styles.orderList}>
+                    {orders.map(o => {
+                        const sc = statusColor(o.status);
+                        return (
+                            <div key={o.id} style={styles.orderCard}>
 
-                        onMouseEnter={(e) => {
-
-                            e.currentTarget.style.transform =
-                                "translateY(-8px) scale(1.01)";
-
-                            e.currentTarget.style.border =
-                                "1px solid rgba(255,255,255,0.22)";
-
-                            e.currentTarget.style.background =
-                                "rgba(35,35,40,0.95)";
-
-                            e.currentTarget.style.boxShadow = `
-                                0 0 20px rgba(255,255,255,0.10),
-                                0 0 40px rgba(239,68,68,0.30),
-                                0 15px 40px rgba(0,0,0,0.7)
-                            `;
-                        }}
-
-                        onMouseLeave={(e) => {
-
-                            e.currentTarget.style.transform =
-                                "translateY(0px) scale(1)";
-
-                            e.currentTarget.style.border =
-                                "1px solid rgba(255,255,255,0.08)";
-
-                            e.currentTarget.style.background =
-                                "rgba(20,20,25,0.82)";
-
-                            e.currentTarget.style.boxShadow =
-                                "0 10px 30px rgba(0,0,0,0.45)";
-                        }}
-                    >
-
-                        <div style={styles.topSection}>
-
-                            <div>
-
-                                <h2 style={styles.orderTitle}>
-                                    Order #{o.id}
-                                </h2>
-
-                                <p style={styles.orderDate}>
-                                    Premium Gaming Purchase
-                                </p>
-
-                            </div>
-
-                            <span style={styles.status}>
-                                {o.status}
-                            </span>
-
-                        </div>
-
-                        <h3 style={styles.total}>
-                            Total: ₹ {o.totalAmount}
-                        </h3>
-
-                        <div style={styles.itemsBox}>
-
-                            <h3 style={styles.itemHeading}>
-                                Order Items
-                            </h3>
-
-                            {o.items.map((i, index) => (
-
-                                <div
-                                    key={index}
-                                    style={styles.itemRow}
-                                >
-
-                                    <div>
-
-                                        <p style={styles.productName}>
-                                            {i.productName}
-                                        </p>
-
+                                {/* CARD HEADER */}
+                                <div style={styles.cardHeader}>
+                                    <div style={styles.orderMeta}>
+                                        <div style={styles.orderIdWrap}>
+                                            <span style={styles.orderIdLabel}>Order</span>
+                                            <span style={styles.orderId}>#{o.id}</span>
+                                        </div>
+                                        <p style={styles.orderSub}>Premium Gaming Purchase</p>
                                     </div>
 
-                                    <div style={styles.rightSection}>
-
-                                        <p style={styles.quantity}>
-                                            Qty: {i.quantity}
-                                        </p>
-
-                                        <p style={styles.price}>
-                                            ₹ {i.price}
-                                        </p>
-
+                                    <div style={styles.headerRight}>
+                                        <span style={{
+                                            ...styles.statusBadge,
+                                            background: sc.bg,
+                                            color: sc.color,
+                                            border: `1px solid ${sc.border}`
+                                        }}>
+                                            {o.status}
+                                        </span>
+                                        <div style={styles.totalWrap}>
+                                            <span style={styles.totalLabel}>Total</span>
+                                            <span style={styles.totalAmount}>
+                                                ₹{Number(o.totalAmount).toLocaleString()}
+                                            </span>
+                                        </div>
                                     </div>
-
                                 </div>
 
-                            ))}
+                                {/* DIVIDER */}
+                                <div style={styles.divider} />
 
-                        </div>
+                                {/* ITEMS */}
+                                <div style={styles.itemsSection}>
+                                    <p style={styles.itemsLabel}>
+                                        {o.items.length} item{o.items.length !== 1 ? "s" : ""}
+                                    </p>
 
-                    </div>
-                ))}
+                                    {o.items.map((item, index) => (
+                                        <div key={index} style={{
+                                            ...styles.itemRow,
+                                            borderBottom: index < o.items.length - 1
+                                                ? "1px solid #141414"
+                                                : "none"
+                                        }}>
+                                            <div style={styles.itemLeft}>
+                                                <div style={styles.itemIcon}>🎮</div>
+                                                <span style={styles.productName}>
+                                                    {item.productName}
+                                                </span>
+                                            </div>
+                                            <div style={styles.itemRight}>
+                                                <span style={styles.qty}>
+                                                    x{item.quantity}
+                                                </span>
+                                                <span style={styles.itemPrice}>
+                                                    ₹{Number(item.price).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                            </div>
+                        );
+                    })}
+                </div>
 
             </div>
-
         </div>
     );
 }
 
 const styles = {
-
     page: {
-
         minHeight: "100vh",
-
-        backgroundImage: `
-            linear-gradient(
-                rgba(5, 5, 8, 0.84),
-                rgba(5, 5, 8, 0.92)
-            ),
-            url("https://images6.alphacoders.com/115/1151248.jpg")
-        `,
-
-        backgroundSize: "cover",
-
-        backgroundPosition: "center",
-
-        backgroundAttachment: "fixed",
-
-        position: "relative",
-
-        overflow: "hidden",
-
-        fontFamily: "'Poppins', sans-serif",
-
-        padding: "40px"
+        background: "#0a0a0a",
+        fontFamily: "'Inter', sans-serif",
+        padding: "40px 24px"
     },
-
-    overlay: {
-
-        position: "absolute",
-
-        inset: 0,
-
-        background: `
-            radial-gradient(
-                circle at top right,
-                rgba(255,255,255,0.06),
-                transparent 30%
-            ),
-            radial-gradient(
-                circle at bottom left,
-                rgba(239,68,68,0.12),
-                transparent 35%
-            )
-        `
-    },
-
     content: {
-
-        position: "relative",
-
-        zIndex: 2,
-
-        maxWidth: "1200px",
-
+        maxWidth: "860px",
         margin: "0 auto"
     },
-
     header: {
-
         textAlign: "center",
-
-        marginBottom: "50px"
+        marginBottom: "48px"
     },
-
+    headerTag: {
+        display: "inline-block",
+        background: "#0f2010",
+        border: "1px solid #22c55e33",
+        color: "#22c55e",
+        fontSize: "11px",
+        fontWeight: "600",
+        letterSpacing: "2px",
+        padding: "6px 16px",
+        borderRadius: "20px",
+        marginBottom: "16px",
+        textTransform: "uppercase"
+    },
     heading: {
-
-        color: "#ffffff",
-
-        fontSize: "55px",
-
-        fontWeight: "900",
-
+        fontFamily: "'Rajdhani', sans-serif",
+        color: "#fff",
+        fontSize: "52px",
+        fontWeight: "700",
         letterSpacing: "4px",
-
-        marginBottom: "10px",
-
-        textShadow: `
-            0px 0px 12px rgba(255,255,255,0.18),
-            0px 0px 30px rgba(239,68,68,0.25)
-        `
+        marginBottom: "10px"
     },
-
-    subtitle: {
-
-        color: "#d1d5db",
-
-        fontSize: "18px"
-    },
-
+    headingGreen: { color: "#22c55e" },
+    subtitle: { color: "#6b7280", fontSize: "15px" },
     emptyBox: {
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        padding: "50px",
-
-        borderRadius: "24px",
-
-        textAlign: "center",
-
-        backdropFilter: "blur(12px)"
+        background: "#0f0f0f",
+        border: "1px solid #1a1a1a",
+        borderRadius: "16px",
+        padding: "64px",
+        textAlign: "center"
     },
-
+    emptyIcon: { fontSize: "48px", marginBottom: "16px" },
     emptyText: {
-
-        color: "#ffffff",
-
-        fontSize: "32px",
-
-        marginBottom: "12px"
-    },
-
-    emptySubText: {
-
-        color: "#9ca3af",
-
-        fontSize: "16px"
-    },
-
-    orderCard: {
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        borderRadius: "24px",
-
-        padding: "30px",
-
-        marginBottom: "30px",
-
-        backdropFilter: "blur(12px)",
-
-        transition: "all 0.35s ease",
-
-        boxShadow:
-            "0 10px 30px rgba(0,0,0,0.45)"
-    },
-
-    topSection: {
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center",
-
-        flexWrap: "wrap",
-
-        gap: "20px",
-
-        marginBottom: "20px"
-    },
-
-    orderTitle: {
-
-        color: "#ffffff",
-
-        fontSize: "28px",
-
+        color: "#fff",
+        fontSize: "20px",
+        fontWeight: "600",
         marginBottom: "8px"
     },
-
-    orderDate: {
-
-        color: "#9ca3af",
-
-        fontSize: "15px"
+    emptySubText: { color: "#6b7280", fontSize: "14px" },
+    orderList: { display: "flex", flexDirection: "column", gap: "16px" },
+    orderCard: {
+        background: "#0f0f0f",
+        border: "1px solid #1a1a1a",
+        borderRadius: "16px",
+        overflow: "hidden",
+        transition: "border-color 0.2s",
     },
-
-    status: {
-
-        background:
-            "linear-gradient(135deg, #22c55e, #16a34a)",
-
-        padding: "8px 18px",
-
-        borderRadius: "30px",
-
-        color: "#ffffff",
-
-        fontWeight: "bold",
-
-        boxShadow:
-            "0 0 20px rgba(34,197,94,0.35)"
-    },
-
-    total: {
-
-        color: "#22c55e",
-
-        fontSize: "30px",
-
-        marginBottom: "25px",
-
-        fontWeight: "900"
-    },
-
-    itemsBox: {
-
-        marginTop: "20px"
-    },
-
-    itemHeading: {
-
-        color: "#ffffff",
-
-        fontSize: "22px",
-
-        marginBottom: "20px"
-    },
-
-    itemRow: {
-
+    cardHeader: {
         display: "flex",
-
         justifyContent: "space-between",
-
-        alignItems: "center",
-
+        alignItems: "flex-start",
+        padding: "20px 24px",
         flexWrap: "wrap",
-
-        gap: "20px",
-
-        padding: "18px 0",
-
-        borderBottom:
-            "1px solid rgba(255,255,255,0.08)"
+        gap: "16px"
     },
-
-    productName: {
-
-        color: "#ffffff",
-
+    orderMeta: { display: "flex", flexDirection: "column", gap: "4px" },
+    orderIdWrap: { display: "flex", alignItems: "baseline", gap: "6px" },
+    orderIdLabel: { color: "#4b5563", fontSize: "12px", fontWeight: "500" },
+    orderId: {
+        color: "#fff",
         fontSize: "18px",
-
-        fontWeight: "600"
+        fontWeight: "700",
+        fontFamily: "'Rajdhani', sans-serif"
     },
-
-    rightSection: {
-
+    orderSub: { color: "#4b5563", fontSize: "12px" },
+    headerRight: {
         display: "flex",
-
         alignItems: "center",
-
-        gap: "25px"
+        gap: "16px",
+        flexWrap: "wrap"
     },
-
-    quantity: {
-
-        color: "#cbd5e1",
-
-        fontSize: "16px"
+    statusBadge: {
+        fontSize: "11px",
+        fontWeight: "700",
+        padding: "5px 12px",
+        borderRadius: "20px",
+        letterSpacing: "0.5px",
+        textTransform: "uppercase"
     },
-
-    price: {
-
+    totalWrap: { textAlign: "right" },
+    totalLabel: {
+        display: "block",
+        color: "#4b5563",
+        fontSize: "11px",
+        fontWeight: "500",
+        marginBottom: "2px"
+    },
+    totalAmount: {
         color: "#22c55e",
-
         fontSize: "20px",
-
-        fontWeight: "bold"
+        fontWeight: "700",
+        fontFamily: "'Rajdhani', sans-serif"
+    },
+    divider: { borderTop: "1px solid #141414" },
+    itemsSection: { padding: "16px 24px" },
+    itemsLabel: {
+        color: "#4b5563",
+        fontSize: "11px",
+        fontWeight: "600",
+        letterSpacing: "1px",
+        textTransform: "uppercase",
+        marginBottom: "12px"
+    },
+    itemRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "12px 0",
+        gap: "16px"
+    },
+    itemLeft: { display: "flex", alignItems: "center", gap: "12px" },
+    itemIcon: {
+        width: "36px",
+        height: "36px",
+        background: "#1a2e1a",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "16px",
+        flexShrink: 0
+    },
+    productName: {
+        color: "#d1d5db",
+        fontSize: "14px",
+        fontWeight: "500"
+    },
+    itemRight: { display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 },
+    qty: {
+        color: "#4b5563",
+        fontSize: "13px",
+        fontWeight: "500",
+        background: "#141414",
+        padding: "3px 8px",
+        borderRadius: "6px"
+    },
+    itemPrice: {
+        color: "#22c55e",
+        fontSize: "15px",
+        fontWeight: "700",
+        fontFamily: "'Rajdhani', sans-serif"
     }
 };
 

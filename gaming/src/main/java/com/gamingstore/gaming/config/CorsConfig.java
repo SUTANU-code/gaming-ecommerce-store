@@ -17,7 +17,7 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of(
         	    "http://localhost:3000",
         	    "http://localhost:3001",
-        	    "https://gaming-store-react.vercel.app"
+        	    "https://gaming-frontend-ten.vercel.app"
         	));
         config.setAllowedMethods(List.of(
                 "GET",

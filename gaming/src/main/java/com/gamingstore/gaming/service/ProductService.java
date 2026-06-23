@@ -1,12 +1,11 @@
 package com.gamingstore.gaming.service;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-
 import com.gamingstore.gaming.dto.ProductRequest;
 import com.gamingstore.gaming.dto.ProductResponse;
 import com.gamingstore.gaming.model.Product;
@@ -18,12 +17,10 @@ public class ProductService {
 	@Autowired
 	private ProductRepository productRepository;
 	
-	// ADD PRODUCT (ADMIN)
-	// ADD PRODUCT (ADMIN)
+	// ADD PRODUCT (ADMIN) — clears cache so new product appears
+	@CacheEvict(value = "products", allEntries = true)
 	public ProductResponse addProduct(ProductRequest request) {
-
 	    Product product = new Product();
-
 	    product.setName(request.getName());
 	    product.setBrand(request.getBrand());
 	    product.setCategory(request.getCategory());
@@ -31,18 +28,14 @@ public class ProductService {
 	    product.setPrice(request.getPrice());
 	    product.setStock(request.getStock());
 	    product.setImageUrl(request.getImageUrl());
-
 	    product.setCreatedAt(LocalDateTime.now());
-
-	    // IMPORTANT
 	    product.setActive(true);
-
 	    Product saved = productRepository.save(product);
-
 	    return mapToResponse(saved);
 	}
 	
-	// GET ALL PRODUCTS (PUBLIC)
+	// GET ALL PRODUCTS (PUBLIC) — cached ✅
+	@Cacheable("products")
     public List<ProductResponse> getAllProducts() {
     	return productRepository.findByActiveTrue()
                 .stream()
@@ -50,15 +43,16 @@ public class ProductService {
                 .toList();
     }
     
-    // GET BY ID
+    // GET BY ID — cached per id ✅
+	@Cacheable(value = "product", key = "#id")
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-
         return mapToResponse(product);
     }
     
- // FILTER BY CATEGORY
+    // FILTER BY CATEGORY — cached per category ✅
+	@Cacheable(value = "productsByCategory", key = "#category")
     public List<ProductResponse> getByCategory(String category) {
         return productRepository
                 .findByCategoryIgnoreCaseAndActiveTrue(category)
@@ -67,12 +61,11 @@ public class ProductService {
                 .toList();
     }
     
-    // UPDATE PRODUCT (ADMIN)
+    // UPDATE PRODUCT (ADMIN) — clears all caches ✅
+	@CacheEvict(value = {"products", "product", "productsByCategory"}, allEntries = true)
     public ProductResponse updateProduct(Long id, ProductRequest request) {
-
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-
         product.setName(request.getName());
         product.setBrand(request.getBrand());
         product.setCategory(request.getCategory());
@@ -80,22 +73,19 @@ public class ProductService {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
         product.setImageUrl(request.getImageUrl());
-
         Product updated = productRepository.save(product);
-
         return mapToResponse(updated);
     }
     
-    // DELETE PRODUCT (ADMIN)
+    // DELETE PRODUCT (ADMIN) — clears all caches ✅
+	@CacheEvict(value = {"products", "product", "productsByCategory"}, allEntries = true)
     public void deleteProduct(Long id) {
-
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-
         product.setActive(false);
-
         productRepository.save(product);
     }
+
 	private ProductResponse mapToResponse(Product product) {
 		return new ProductResponse(
                 product.getId(),
@@ -108,5 +98,4 @@ public class ProductService {
                 product.getImageUrl()
         );
 	}
-
 }

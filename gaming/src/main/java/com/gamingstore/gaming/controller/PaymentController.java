@@ -13,7 +13,7 @@ import com.razorpay.RazorpayClient;
 
 @RestController
 @RequestMapping("/api/payment")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class PaymentController {
 
     @Value("${razorpay.key.id}")

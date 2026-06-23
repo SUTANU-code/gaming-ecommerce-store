@@ -37,30 +37,46 @@ public class CartService {
 	
 	//ADD TO CART
 	public void addToCart(String email, AddToCartRequest request) {
-		
-		User user = userRepository.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("User not found"));
-		
-		Cart cart = cartRepository.findByUser(user)
-				.orElseGet(()->{
-					Cart newCart = new Cart();
-					newCart.setUser(user);
-					return cartRepository.save(newCart);
-				});
-				
-		Product product = productRepository.findById(request.getProductId())
-				.orElseThrow(() -> new RuntimeException( "product not found"));
-		
-		CartItem item = new CartItem();
-		item.setCart(cart);
-		item.setProduct(product);
-		item.setQuantity(request.getQuantity());
-		
-		cartItemRepository.save(item);
+
+	    User user = userRepository.findByEmail(email)
+	            .orElseThrow(() -> new RuntimeException("User not found"));
+
+	    Cart cart = cartRepository.findByUser(user)
+	            .orElseGet(() -> {
+	                Cart newCart = new Cart();
+	                newCart.setUser(user);
+	                return cartRepository.save(newCart);
+	            });
+
+	    Product product = productRepository.findById(request.getProductId())
+	            .orElseThrow(() -> new RuntimeException("Product not found"));
+
+	    Optional<CartItem> existingItem =
+	            cartItemRepository.findByCartAndProduct(cart, product);
+
+	    if (existingItem.isPresent()) {
+
+	        CartItem item = existingItem.get();
+
+	        item.setQuantity(
+	                item.getQuantity() + request.getQuantity()
+	        );
+
+	        cartItemRepository.save(item);
+
+	    } else {
+
+	        CartItem item = new CartItem();
+	        item.setCart(cart);
+	        item.setProduct(product);
+	        item.setQuantity(request.getQuantity());
+
+	        cartItemRepository.save(item);
+	    }
 	}
 	
 	// VIEW CART
-	public List<CartResponse> viewCart(String email){
+	public List<CartResponse> viewCart(String email) {
 
 	    User user = userRepository.findByEmail(email)
 	            .orElseThrow(() -> new RuntimeException("User not found"));
@@ -72,10 +88,11 @@ public class CartService {
 
 	    return items.stream()
 	            .map(item -> new CartResponse(
-	                    item.getProduct().getId(),
-	                    item.getProduct().getName(),
-	                    item.getQuantity(),
-	                    item.getProduct().getPrice()
+	                    item.getId(),                    // cartItemId
+	                    item.getProduct().getId(),       // productId
+	                    item.getProduct().getName(),     // productName
+	                    item.getQuantity(),              // quantity
+	                    item.getProduct().getPrice()     // price
 	            ))
 	            .toList();
 	}

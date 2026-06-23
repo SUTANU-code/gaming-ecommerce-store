@@ -2,14 +2,53 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { toast } from "react-toastify";
 
+const SkeletonCard = () => (
+    <div style={styles.card}>
+        <div style={styles.cardLeft}>
+            <div style={{ ...styles.itemIcon, ...styles.sk }} />
+            <div>
+                <div style={{ ...styles.sk, height: "15px", width: "160px", borderRadius: "6px", marginBottom: "8px" }} />
+                <div style={{ ...styles.sk, height: "12px", width: "80px", borderRadius: "6px" }} />
+            </div>
+        </div>
+        <div style={styles.cardRight}>
+            <div style={{ ...styles.sk, height: "20px", width: "60px", borderRadius: "6px" }} />
+            <div style={{ ...styles.sk, height: "32px", width: "80px", borderRadius: "8px" }} />
+        </div>
+    </div>
+);
+
+const SkeletonSummary = () => (
+    <div style={{ ...styles.summary, opacity: 0.6 }}>
+        <div style={{ ...styles.sk, height: "18px", width: "130px", borderRadius: "6px", marginBottom: "22px" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
+            <div style={{ ...styles.sk, height: "14px", width: "90px", borderRadius: "6px" }} />
+            <div style={{ ...styles.sk, height: "14px", width: "60px", borderRadius: "6px" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
+            <div style={{ ...styles.sk, height: "14px", width: "70px", borderRadius: "6px" }} />
+            <div style={{ ...styles.sk, height: "14px", width: "40px", borderRadius: "6px" }} />
+        </div>
+        <div style={styles.divider} />
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+            <div style={{ ...styles.sk, height: "16px", width: "50px", borderRadius: "6px" }} />
+            <div style={{ ...styles.sk, height: "22px", width: "80px", borderRadius: "6px" }} />
+        </div>
+        <div style={{ ...styles.sk, height: "46px", width: "100%", borderRadius: "10px" }} />
+        <div style={{ ...styles.sk, height: "12px", width: "140px", borderRadius: "6px", margin: "14px auto 0" }} />
+    </div>
+);
+
 function Cart() {
     const [cart, setCart] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [paying, setPaying] = useState(false);
 
     useEffect(() => {
         API.get("/cart")
             .then(res => setCart(res.data))
-            .catch(err => console.log(err));
+            .catch(err => console.log(err))
+            .finally(() => setLoading(false));
     }, []);
 
     // REMOVE FROM CART — optimistic UI
@@ -78,13 +117,27 @@ function Cart() {
                     <p style={styles.subtitle}>Ready to complete your legendary purchase?</p>
                 </div>
 
-                {cart.length === 0 ? (
+                {/* LOADING SKELETON */}
+                {loading && (
+                    <div style={styles.layout}>
+                        <div style={styles.itemsList}>
+                            {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+                        </div>
+                        <SkeletonSummary />
+                    </div>
+                )}
+
+                {/* EMPTY */}
+                {!loading && cart.length === 0 && (
                     <div style={styles.emptyBox}>
                         <div style={styles.emptyIcon}>🛒</div>
                         <h2 style={styles.emptyText}>Your cart is empty</h2>
                         <p style={styles.emptySubText}>Add some epic games to continue</p>
                     </div>
-                ) : (
+                )}
+
+                {/* CART */}
+                {!loading && cart.length > 0 && (
                     <div style={styles.layout}>
 
                         {/* CART ITEMS */}
@@ -146,6 +199,7 @@ function Cart() {
 
                     </div>
                 )}
+
             </div>
         </div>
     );
@@ -250,7 +304,7 @@ const styles = {
         borderRadius: "16px",
         padding: "28px",
         position: "sticky",
-        top: "88px"        // ✅ sticks below navbar while scrolling
+        top: "88px"
     },
     summaryTitle: { color: "#fff", fontSize: "16px", fontWeight: "600", marginBottom: "20px" },
     summaryRow: { display: "flex", justifyContent: "space-between", marginBottom: "12px" },
@@ -278,6 +332,11 @@ const styles = {
         fontSize: "12px",
         textAlign: "center",
         marginTop: "12px"
+    },
+    sk: {
+        background: "linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)",
+        backgroundSize: "600px 100%",
+        animation: "shimmer 1.4s infinite",
     }
 };
 

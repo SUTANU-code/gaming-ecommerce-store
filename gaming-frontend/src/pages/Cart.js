@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 import API from "../api/axios";
+import ChatBot from "../components/ChatBox";
 import { formatPrice } from "../utils/format";
 
 const PLACEHOLDER =
@@ -179,6 +180,8 @@ function Cart() {
             <span>Loading your cart…</span>
           </div>
         </main>
+
+        <ChatBot />
       </div>
     );
   }
@@ -341,6 +344,8 @@ function Cart() {
           )}
         </div>
       </main>
+
+      <ChatBot />
     </div>
   );
 }

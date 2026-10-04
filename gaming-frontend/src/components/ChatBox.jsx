@@ -1,349 +1,199 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import API from "../api/axios";
 
+const SUGGESTIONS = [
+  "What do you have for PS5?",
+  "Show me accessories under $50",
+  "Which controller is best?",
+];
+
 function ChatBot() {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    const [message, setMessage] = useState("");
+  const logRef = useRef(null);
+  const inputRef = useRef(null);
 
-    const [messages, setMessages] = useState([]);
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [messages, loading, open]);
 
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
 
-   
-    const [open, setOpen] = useState(false);
-
-    const sendMessage = async () => {
-
-        if (!message.trim()) {
-            return;
-        }
-
-        const userMessage = {
-            sender: "user",
-            text: message,
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
-
-        const currentMessage = message;
-
-        setMessage("");
-
-        setLoading(true);
-
-        try {
-
-            const res = await API.get(
-                `/ai/chat?message=${encodeURIComponent(currentMessage)}`
-            );
-
-            const aiMessage = {
-                sender: "ai",
-                text: res.data,
-            };
-
-            setMessages((prev) => [...prev, aiMessage]);
-
-        } catch (error) {
-
-            console.error(error);
-
-            const errorMessage = {
-                sender: "ai",
-                text: "Something went wrong. Please try again.",
-            };
-
-            setMessages((prev) => [...prev, errorMessage]);
-
-        } finally {
-
-            setLoading(false);
-        }
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
     };
 
-    const handleKeyPress = (e) => {
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
-        if (e.key === "Enter") {
-            sendMessage();
-        }
-    };
+  const send = async (text) => {
+    const textToSend = (text ?? message).trim();
 
-    return (
+    if (!textToSend || loading) return;
 
-        <>
-            {/* ✅ FLOATING BUTTON */}
+    setMessages((prev) => [...prev, { from: "user", text: textToSend }]);
+    setMessage("");
+    setLoading(true);
 
-            <div
-                style={styles.floatingButton}
-                onClick={() => setOpen(!open)}
+    try {
+      const res = await API.get(
+        `/ai/chat?message=${encodeURIComponent(textToSend)}`
+      );
+
+      const reply =
+        typeof res.data === "string"
+          ? res.data
+          : res.data?.reply || res.data?.message || "";
+
+      setMessages((prev) => [...prev, { from: "ai", text: reply }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          from: "ai",
+          text: "I could not reach the assistant just now. Please try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className="chat-fab"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={open ? "Close shopping assistant" : "Open shopping assistant"}
+        title={open ? "Close assistant" : "Ask the shopping assistant"}
+      >
+        {open ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12" />
+            <path d="M18 6L6 18" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.6-.8L3 21l1.9-5A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z" />
+          </svg>
+        )}
+      </button>
+
+      {open ? (
+        <section
+          className="chat-panel"
+          role="dialog"
+          aria-label="Shopping assistant"
+        >
+          <header className="chat-panel__head">
+            <span className="chat-panel__dot" aria-hidden="true" />
+            <h2 className="chat-panel__title">Shopping assistant</h2>
+
+            <button
+              type="button"
+              className="chat-panel__close"
+              onClick={() => setOpen(false)}
+              aria-label="Close assistant"
             >
-                🎮
-            </div>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l12 12" />
+                <path d="M18 6L6 18" />
+              </svg>
+            </button>
+          </header>
 
-            {/* ✅ POPUP CHATBOX */}
+          <div className="chat-panel__log" ref={logRef} aria-live="polite">
+            {messages.length === 0 && !loading ? (
+              <div className="chat-panel__empty">
+                <p style={{ margin: "0 0 12px" }}>
+                  Ask me what to look for.
+                </p>
 
-            {
-                open && (
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    style={{ margin: "0 4px 6px" }}
+                    onClick={() => send(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
-                    <div style={styles.chatBox}>
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`chat-msg chat-msg--${m.from === "user" ? "user" : "ai"}`}
+              >
+                {m.text}
+              </div>
+            ))}
 
-                        <div style={styles.topBar}>
+            {loading ? (
+              <div className="chat-msg chat-msg--ai">
+                <span
+                  className="spinner spinner--sm"
+                  style={{ display: "inline-block", verticalAlign: "middle" }}
+                  aria-label="Assistant is typing"
+                />
+              </div>
+            ) : null}
+          </div>
 
-                            <h2 style={styles.heading}>
-                                Gaming AI
-                            </h2>
+          <form
+            className="chat-panel__form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+          >
+            <input
+              id="chat-message-input"
+              name="chatMessage"
+              ref={inputRef}
+              type="text"
+              className="field"
+              placeholder="Ask about products…"
+              value={message}
+              maxLength={300}
+              onChange={(e) => setMessage(e.target.value)}
+            />
 
-                            <button
-                                style={styles.closeButton}
-                                onClick={() => setOpen(false)}
-                            >
-                                ✖
-                            </button>
-
-                        </div>
-
-                        <div style={styles.messagesContainer}>
-
-                            {
-                                messages.map((msg, index) => (
-
-                                    <div
-                                        key={index}
-                                        style={
-                                            msg.sender === "user"
-                                                ? styles.userMessage
-                                                : styles.aiMessage
-                                        }
-                                    >
-                                        {msg.text}
-                                    </div>
-                                ))
-                            }
-
-                            {
-                                loading && (
-                                    <div style={styles.aiMessage}>
-                                        AI is thinking...
-                                    </div>
-                                )
-                            }
-
-                        </div>
-
-                        <input
-                            id="chat-message-input"
-                            name="chatMessage"
-                            type="text"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            onKeyDown={handleKeyPress}
-                            placeholder="Ask about games..."
-                            style={styles.input}
-                        />
-
-                        <button
-                            onClick={sendMessage}
-                            style={styles.button}
-                        >
-                            Send
-                        </button>
-
-                    </div>
-                )
-            }
-        </>
-    );
+            <button
+              type="submit"
+              className="btn btn--sm"
+              disabled={loading || !message.trim()}
+            >
+              Send
+            </button>
+          </form>
+        </section>
+      ) : null}
+    </>
+  );
 }
-
-const styles = {
-
-    // ✅ SMALL FLOATING ICON
-
-    floatingButton: {
-
-        position: "fixed",
-
-        bottom: "25px",
-
-        right: "25px",
-
-        width: "65px",
-
-        height: "65px",
-
-        borderRadius: "50%",
-
-        background: "#22c55e",
-
-        display: "flex",
-
-        alignItems: "center",
-
-        justifyContent: "center",
-
-        fontSize: "28px",
-
-        cursor: "pointer",
-
-        zIndex: 1000,
-
-        boxShadow: "0 0 20px rgba(34,197,94,0.5)",
-    },
-
-    // ✅ POPUP CHATBOX
-
-    chatBox: {
-
-        position: "fixed",
-
-        bottom: "100px",
-
-        right: "25px",
-
-        width: "340px",
-
-        height: "480px",
-
-        background: "rgba(20,20,25,0.97)",
-
-        border: "1px solid rgba(255,255,255,0.1)",
-
-        borderRadius: "20px",
-
-        padding: "15px",
-
-        color: "white",
-
-        zIndex: 999,
-
-        display: "flex",
-
-        flexDirection: "column",
-
-        backdropFilter: "blur(10px)",
-
-        boxShadow: "0 0 25px rgba(34,197,94,0.3)",
-    },
-
-    topBar: {
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center",
-
-        marginBottom: "10px",
-    },
-
-    heading: {
-
-        color: "#22c55e",
-
-        fontSize: "20px",
-
-        margin: 0,
-    },
-
-    closeButton: {
-
-        background: "transparent",
-
-        border: "none",
-
-        color: "white",
-
-        fontSize: "18px",
-
-        cursor: "pointer",
-    },
-
-    messagesContainer: {
-
-        flex: 1,
-
-        overflowY: "auto",
-
-        display: "flex",
-
-        flexDirection: "column",
-
-        gap: "10px",
-
-        marginBottom: "10px",
-    },
-
-    userMessage: {
-
-        alignSelf: "flex-end",
-
-        background: "#22c55e",
-
-        color: "white",
-
-        padding: "10px 14px",
-
-        borderRadius: "15px",
-
-        maxWidth: "80%",
-
-        wordWrap: "break-word",
-    },
-
-    aiMessage: {
-
-        alignSelf: "flex-start",
-
-        background: "#2d2d35",
-
-        color: "#f3f4f6",
-
-        padding: "10px 14px",
-
-        borderRadius: "15px",
-
-        maxWidth: "80%",
-
-        wordWrap: "break-word",
-
-        whiteSpace: "pre-wrap",
-    },
-
-    input: {
-
-        width: "100%",
-
-        padding: "12px",
-
-        borderRadius: "10px",
-
-        border: "none",
-
-        outline: "none",
-
-        marginBottom: "10px",
-
-        boxSizing: "border-box",
-    },
-
-    button: {
-
-        width: "100%",
-
-        padding: "12px",
-
-        border: "none",
-
-        borderRadius: "10px",
-
-        background: "#22c55e",
-
-        color: "white",
-
-        fontWeight: "bold",
-
-        cursor: "pointer",
-    },
-};
 
 export default ChatBot;

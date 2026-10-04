@@ -1,443 +1,179 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
+import ChatBot from "../components/ChatBox";
+import { formatPrice } from "../utils/format";
 
-function Orders() {
+const PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f6f7f9'/%3E%3Ctext x='100' y='106' font-family='Segoe UI,sans-serif' font-size='11' fill='%2374767f' text-anchor='middle'%3ENo image%3C/text%3E%3C/svg%3E";
 
-    const [orders, setOrders] = useState([]);
+const normalise = (s) => (s || "").trim().toLowerCase();
 
-    useEffect(() => {
+function statusClass(status) {
+  const s = normalise(status);
 
-        API.get("/order/user")
-            .then(res => {
+  if (s.includes("deliver") || s.includes("ship")) return "pill pill--shipped";
+  if (s.includes("cancel") || s.includes("fail")) return "pill pill--cancelled";
 
-                setOrders(res.data);
-
-            })
-            .catch(err => {
-
-                console.log(err);
-
-            });
-
-    }, []);
-
-    return (
-
-        <div style={styles.page}>
-
-            <div style={styles.overlay}></div>
-
-            <div style={styles.content}>
-
-                <div style={styles.header}>
-
-                    <h1 style={styles.heading}>
-                        MY ORDERS
-                    </h1>
-
-                    <p style={styles.subtitle}>
-                        Track your legendary gaming purchases
-                    </p>
-
-                </div>
-
-                {orders.length === 0 && (
-
-                    <div style={styles.emptyBox}>
-
-                        <h2 style={styles.emptyText}>
-                            📦 No Orders Found
-                        </h2>
-
-                        <p style={styles.emptySubText}>
-                            Your purchased games will appear here
-                        </p>
-
-                    </div>
-
-                )}
-
-                {orders.map(o => (
-
-                    <div
-                        key={o.id}
-                        style={styles.orderCard}
-
-                        onMouseEnter={(e) => {
-
-                            e.currentTarget.style.transform =
-                                "translateY(-8px) scale(1.01)";
-
-                            e.currentTarget.style.border =
-                                "1px solid rgba(255,255,255,0.22)";
-
-                            e.currentTarget.style.background =
-                                "rgba(35,35,40,0.95)";
-
-                            e.currentTarget.style.boxShadow = `
-                                0 0 20px rgba(255,255,255,0.10),
-                                0 0 40px rgba(239,68,68,0.30),
-                                0 15px 40px rgba(0,0,0,0.7)
-                            `;
-                        }}
-
-                        onMouseLeave={(e) => {
-
-                            e.currentTarget.style.transform =
-                                "translateY(0px) scale(1)";
-
-                            e.currentTarget.style.border =
-                                "1px solid rgba(255,255,255,0.08)";
-
-                            e.currentTarget.style.background =
-                                "rgba(20,20,25,0.82)";
-
-                            e.currentTarget.style.boxShadow =
-                                "0 10px 30px rgba(0,0,0,0.45)";
-                        }}
-                    >
-
-                        <div style={styles.topSection}>
-
-                            <div>
-
-                                <h2 style={styles.orderTitle}>
-                                    Order #{o.id}
-                                </h2>
-
-                                <p style={styles.orderDate}>
-                                    Premium Gaming Purchase
-                                </p>
-
-                            </div>
-
-                            <span style={styles.status}>
-                                {o.status}
-                            </span>
-
-                        </div>
-
-                        <h3 style={styles.total}>
-                            Total: ₹ {o.totalAmount}
-                        </h3>
-
-                        <div style={styles.itemsBox}>
-
-                            <h3 style={styles.itemHeading}>
-                                Order Items
-                            </h3>
-
-                            {o.items.map((i, index) => (
-
-                                <div
-                                    key={index}
-                                    style={styles.itemRow}
-                                >
-
-                                    <div>
-
-                                        <p style={styles.productName}>
-                                            {i.productName}
-                                        </p>
-
-                                    </div>
-
-                                    <div style={styles.rightSection}>
-
-                                        <p style={styles.quantity}>
-                                            Qty: {i.quantity}
-                                        </p>
-
-                                        <p style={styles.price}>
-                                            ₹ {i.price}
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            ))}
-
-                        </div>
-
-                    </div>
-                ))}
-
-            </div>
-
-        </div>
-    );
+  return "pill";
 }
 
-const styles = {
-
-    page: {
-
-        minHeight: "100vh",
-
-        backgroundImage: `
-            linear-gradient(
-                rgba(5, 5, 8, 0.84),
-                rgba(5, 5, 8, 0.92)
-            ),
-            url("https://images6.alphacoders.com/115/1151248.jpg")
-        `,
-
-        backgroundSize: "cover",
-
-        backgroundPosition: "center",
-
-        backgroundAttachment: "fixed",
-
-        position: "relative",
-
-        overflow: "hidden",
-
-        fontFamily: "'Poppins', sans-serif",
-
-        padding: "40px"
-    },
-
-    overlay: {
-
-        position: "absolute",
-
-        inset: 0,
-
-        background: `
-            radial-gradient(
-                circle at top right,
-                rgba(255,255,255,0.06),
-                transparent 30%
-            ),
-            radial-gradient(
-                circle at bottom left,
-                rgba(239,68,68,0.12),
-                transparent 35%
-            )
-        `
-    },
-
-    content: {
-
-        position: "relative",
-
-        zIndex: 2,
-
-        maxWidth: "1200px",
-
-        margin: "0 auto"
-    },
-
-    header: {
-
-        textAlign: "center",
-
-        marginBottom: "50px"
-    },
-
-    heading: {
-
-        color: "#ffffff",
-
-        fontSize: "55px",
-
-        fontWeight: "900",
-
-        letterSpacing: "4px",
-
-        marginBottom: "10px",
-
-        textShadow: `
-            0px 0px 12px rgba(255,255,255,0.18),
-            0px 0px 30px rgba(239,68,68,0.25)
-        `
-    },
-
-    subtitle: {
-
-        color: "#d1d5db",
-
-        fontSize: "18px"
-    },
-
-    emptyBox: {
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        padding: "50px",
-
-        borderRadius: "24px",
-
-        textAlign: "center",
-
-        backdropFilter: "blur(12px)"
-    },
-
-    emptyText: {
-
-        color: "#ffffff",
-
-        fontSize: "32px",
-
-        marginBottom: "12px"
-    },
-
-    emptySubText: {
-
-        color: "#9ca3af",
-
-        fontSize: "16px"
-    },
-
-    orderCard: {
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        borderRadius: "24px",
-
-        padding: "30px",
-
-        marginBottom: "30px",
-
-        backdropFilter: "blur(12px)",
-
-        transition: "all 0.35s ease",
-
-        boxShadow:
-            "0 10px 30px rgba(0,0,0,0.45)"
-    },
-
-    topSection: {
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center",
-
-        flexWrap: "wrap",
-
-        gap: "20px",
-
-        marginBottom: "20px"
-    },
-
-    orderTitle: {
-
-        color: "#ffffff",
-
-        fontSize: "28px",
-
-        marginBottom: "8px"
-    },
-
-    orderDate: {
-
-        color: "#9ca3af",
-
-        fontSize: "15px"
-    },
-
-    status: {
-
-        background:
-            "linear-gradient(135deg, #22c55e, #16a34a)",
-
-        padding: "8px 18px",
-
-        borderRadius: "30px",
-
-        color: "#ffffff",
-
-        fontWeight: "bold",
-
-        boxShadow:
-            "0 0 20px rgba(34,197,94,0.35)"
-    },
-
-    total: {
-
-        color: "#22c55e",
-
-        fontSize: "30px",
-
-        marginBottom: "25px",
-
-        fontWeight: "900"
-    },
-
-    itemsBox: {
-
-        marginTop: "20px"
-    },
-
-    itemHeading: {
-
-        color: "#ffffff",
-
-        fontSize: "22px",
-
-        marginBottom: "20px"
-    },
-
-    itemRow: {
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center",
-
-        flexWrap: "wrap",
-
-        gap: "20px",
-
-        padding: "18px 0",
-
-        borderBottom:
-            "1px solid rgba(255,255,255,0.08)"
-    },
-
-    productName: {
-
-        color: "#ffffff",
-
-        fontSize: "18px",
-
-        fontWeight: "600"
-    },
-
-    rightSection: {
-
-        display: "flex",
-
-        alignItems: "center",
-
-        gap: "25px"
-    },
-
-    quantity: {
-
-        color: "#cbd5e1",
-
-        fontSize: "16px"
-    },
-
-    price: {
-
-        color: "#22c55e",
-
-        fontSize: "20px",
-
-        fontWeight: "bold"
+function Orders() {
+  const [orders, setOrders] = useState(null);
+  const [catalogue, setCatalogue] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    /* The order API returns only productName, price and quantity, so there is
+       no image reference on the order itself. The product list is a public
+       endpoint, so we fetch it once and match items by name to recover the
+       image. Names are normalised so casing or stray spaces still match. */
+    Promise.allSettled([API.get("/order/user"), API.get("/products")])
+      .then(([ordersResult, productsResult]) => {
+        if (cancelled) return;
+
+        if (ordersResult.status === "fulfilled") {
+          const data = ordersResult.value.data;
+          setOrders(Array.isArray(data) ? data : []);
+        } else if (ordersResult.reason?.response?.status !== 401) {
+          setError("We could not load your orders. Please refresh and try again.");
+          setOrders([]);
+        }
+
+        if (productsResult.status === "fulfilled") {
+          const data = productsResult.value.data;
+          setCatalogue(Array.isArray(data) ? data : []);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const imageByName = useMemo(() => {
+    const map = new Map();
+
+    for (const product of catalogue) {
+      if (product?.name && product?.imageUrl) {
+        map.set(normalise(product.name), product.imageUrl);
+      }
     }
-};
+
+    return map;
+  }, [catalogue]);
+
+  const totalOrders = orders?.length ?? 0;
+
+  return (
+    <div className="page">
+      <main className="main">
+        <div className="shell">
+          <header className="section-head">
+            <div>
+              <span className="eyebrow">Account</span>
+              <h1>Your orders</h1>
+              <p>
+                {orders === null
+                  ? "Loading your order history…"
+                  : totalOrders === 0
+                    ? "No orders placed yet"
+                    : `${totalOrders} order${totalOrders === 1 ? "" : "s"}`}
+              </p>
+            </div>
+          </header>
+
+          {error ? <p className="notice notice--warn">{error}</p> : null}
+
+          {orders === null ? (
+            <div className="loading">
+              <span className="spinner" aria-hidden="true" />
+              <span>Loading your orders…</span>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="empty">
+              <h3>No orders yet</h3>
+              <p>When you place an order it will show up here.</p>
+              <a className="btn btn--sm" style={{ marginTop: 14 }} href="/">
+                Start shopping
+              </a>
+            </div>
+          ) : (
+            orders.map((order) => {
+              const id = order.orderId ?? order.id;
+
+              return (
+                <article className="order" key={id}>
+                  <header className="order__head">
+                    <div>
+                      <div className="order__id">Order #{id}</div>
+                      <div className="order__meta">
+                        {order.items?.reduce(
+                          (n, i) => n + (i.quantity || 0),
+                          0
+                        ) || 0}{" "}
+                        item
+                        {(order.items?.reduce(
+                          (n, i) => n + (i.quantity || 0),
+                          0
+                        ) || 0) === 1
+                          ? ""
+                          : "s"}
+                      </div>
+                    </div>
+
+                    <span className={statusClass(order.status)}>
+                      {order.status || "Unknown"}
+                    </span>
+                  </header>
+
+                  <div className="order__body">
+                    {(order.items || []).map((item, index) => (
+                      <div className="line" key={`${item.productName}-${index}`}>
+                        <div className="line__media">
+                          <img
+                            src={
+                              imageByName.get(normalise(item.productName)) ||
+                              PLACEHOLDER
+                            }
+                            alt={item.productName}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+
+                        <div>
+                          <h3 className="line__name">{item.productName}</h3>
+                          <p className="line__unit">
+                            {formatPrice(item.price)} each · Qty{" "}
+                            {item.quantity}
+                          </p>
+                        </div>
+
+                        <div className="line__total price">
+                          {formatPrice(item.price * item.quantity)}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="order__total">
+                      <span>Order total</span>
+                      <span className="price price--lg">
+                        {formatPrice(order.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </main>
+
+      <ChatBot />
+    </div>
+  );
+}
 
 export default Orders;

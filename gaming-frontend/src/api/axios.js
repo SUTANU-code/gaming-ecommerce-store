@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API = axios.create({
   baseURL: process.env.REACT_APP_API_URL ||
-    "https://gaming-ecommerce-store-6.onrender.com/api",
+    "https://gaming-ecommerce-store-8.onrender.com/api",
 });
 
 // ✅ Attach token to every request

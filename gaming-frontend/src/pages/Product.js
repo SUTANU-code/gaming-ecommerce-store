@@ -86,6 +86,8 @@ function Products() {
                 <div style={styles.topBar}>
 
                     <input
+                        id="search-games-input"
+                        name="searchGames"
                         type="text"
                         placeholder="Search games..."
                         value={search}

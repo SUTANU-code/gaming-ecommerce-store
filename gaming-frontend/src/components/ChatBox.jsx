@@ -131,6 +131,8 @@ function ChatBot() {
                         </div>
 
                         <input
+                            id="chat-message-input"
+                            name="chatMessage"
                             type="text"
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}

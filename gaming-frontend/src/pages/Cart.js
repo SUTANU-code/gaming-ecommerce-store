@@ -77,7 +77,7 @@ function Cart() {
 
             const options = {
 
-                key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+                key: data.key || process.env.REACT_APP_RAZORPAY_KEY_ID,
 
                 amount: data.amount,
 

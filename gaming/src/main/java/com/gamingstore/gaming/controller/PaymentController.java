@@ -57,6 +57,8 @@ public class PaymentController {
 
             response.put("currency", order.get("currency"));
 
+            response.put("key", razorpayKey);
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

@@ -1,476 +1,348 @@
-import { useEffect, useState } from "react";
-import API from "../api/axios";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
-function Cart() {
-
-    const [cart, setCart] = useState([]);
-
-    useEffect(() => {
-
-        API.get("/cart")
-            .then(res => setCart(res.data))
-            .catch(err => console.log(err));
-
-    }, []);
-
-    // LOAD RAZORPAY SCRIPT
-    const loadRazorpayScript = () => {
-
-        return new Promise((resolve) => {
-
-            const script = document.createElement("script");
-
-            script.src =
-                "https://checkout.razorpay.com/v1/checkout.js";
-
-            script.onload = () => {
-                resolve(true);
-            };
-
-            script.onerror = () => {
-                resolve(false);
-            };
-
-            document.body.appendChild(script);
-        });
-    };
-
-    // PLACE ORDER + PAYMENT
-    const placeOrder = async () => {
-
-        try {
-
-            const loaded = await loadRazorpayScript();
-
-            if (!loaded) {
-
-                toast.error("Razorpay SDK Failed to load");
-
-                return;
-            }
-
-            const total = cart.reduce(
-                (sum, item) =>
-                    sum + (item.price * item.quantity),
-                0
-            );
-
-            console.log("TOTAL =", total);
-
-            // CREATE ORDER FROM BACKEND
-            const response = await API.post(
-                "/payment/create-order",
-                {
-                    amount: Number(total)
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-
-            console.log(response.data);
-
-            const data = response.data;
-
-            const options = {
-
-                key: data.key || process.env.REACT_APP_RAZORPAY_KEY_ID,
-
-                amount: data.amount,
-
-                currency: data.currency,
-
-                name: "Gaming Store",
-
-                description: "Game Purchase",
-
-                order_id: data.id,
-
-                handler: async function (response) {
-
-                    console.log(response);
-
-                    toast.success("Payment Successful");
-
-                    try {
-
-                        await API.post("/order/place");
-
-                    } catch (err) {
-
-                        console.log(err);
-                    }
-                },
-
-                prefill: {
-
-                    name: "Gaming User",
-
-                    email: "user@gmail.com",
-
-                    contact: "9999999999"
-                },
-
-                theme: {
-                    color: "#22c55e"
-                }
-            };
-
-            const paymentObject =
-                new window.Razorpay(options);
-
-            paymentObject.open();
-
-        } catch (err) {
-
-            console.log(err);
-
-            toast.error("Payment Failed");
-        }
-    };
-
-    const total = cart.reduce(
-        (sum, item) =>
-            sum + (item.price * item.quantity),
-        0
-    );
-
-    return (
-
-        <div style={styles.page}>
-
-            <div style={styles.overlay}></div>
-
-            <div style={styles.content}>
-
-                <div style={styles.header}>
-
-                    <h1 style={styles.heading}>
-                        YOUR CART
-                    </h1>
-
-                    <p style={styles.subtitle}>
-                        Ready to complete your legendary purchase?
-                    </p>
-
-                </div>
-
-                {
-
-                    cart.length === 0 ? (
-
-                        <div style={styles.emptyBox}>
-
-                            <h2 style={styles.emptyText}>
-                                🛒 Your Cart is Empty
-                            </h2>
-
-                            <p style={styles.emptySubText}>
-                                Add some epic games to continue
-                            </p>
-
-                        </div>
-
-                    ) : (
-
-                        <>
-                            <div style={styles.cartContainer}>
-
-                                {
-
-                                    cart.map((item, index) => (
-
-                                        <div
-                                            key={item.id || index}
-                                            style={styles.card}
-                                        >
-
-                                            <div>
-
-                                                <h2 style={styles.productName}>
-                                                    {item.productName}
-                                                </h2>
-
-                                                <p style={styles.quantity}>
-                                                    Quantity: {item.quantity}
-                                                </p>
-
-                                            </div>
-
-                                            <div style={styles.priceBox}>
-
-                                                ₹ {item.price * item.quantity}
-
-                                            </div>
-
-                                        </div>
-                                    ))
-                                }
-
-                            </div>
-
-                            <div style={styles.totalBox}>
-
-                                <div>
-
-                                    <h2 style={styles.totalText}>
-                                        Total Amount
-                                    </h2>
-
-                                    <p style={styles.totalPrice}>
-                                        ₹ {total}
-                                    </p>
-
-                                </div>
-
-                                <button
-                                    style={styles.orderBtn}
-                                    onClick={placeOrder}
-                                >
-                                    Pay Now
-                                </button>
-
-                            </div>
-
-                        </>
-                    )
-                }
-
-            </div>
-
-        </div>
-    );
+import API from "../api/axios";
+import { formatPrice } from "../utils/format";
+
+const PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f6f7f9'/%3E%3C/svg%3E";
+
+/* The API stores one cart row per "add" call, so tapping Add twice on the
+   same product returns two separate rows instead of one row with quantity 2.
+   The server has no merge step, so we fold rows by product here before
+   rendering: one line per product, quantities summed, line total recomputed. */
+function mergeByProduct(rows) {
+  const merged = new Map();
+
+  for (const row of rows) {
+    const key = row.productId;
+
+    const existing = merged.get(key);
+
+    if (existing) {
+      existing.quantity += row.quantity || 0;
+    } else {
+      merged.set(key, {
+        productId: key,
+        productName: row.productName,
+        price: row.price,
+        imageUrl: row.imageUrl,
+        quantity: row.quantity || 0,
+      });
+    }
+  }
+
+  return [...merged.values()];
 }
 
-const styles = {
-
-    page: {
-
-        minHeight: "100vh",
-
-        backgroundImage: `
-            linear-gradient(
-                rgba(5, 5, 8, 0.84),
-                rgba(5, 5, 8, 0.92)
-            ),
-            url("https://images6.alphacoders.com/115/1151248.jpg")
-        `,
-
-        backgroundSize: "cover",
-
-        backgroundPosition: "center",
-
-        backgroundAttachment: "fixed",
-
-        position: "relative",
-
-        overflow: "hidden",
-
-        fontFamily: "'Poppins', sans-serif",
-
-        padding: "40px"
-    },
-
-    overlay: {
-
-        position: "absolute",
-
-        inset: 0,
-
-        background: `
-            radial-gradient(
-                circle at top right,
-                rgba(255,255,255,0.06),
-                transparent 30%
-            ),
-            radial-gradient(
-                circle at bottom left,
-                rgba(239,68,68,0.12),
-                transparent 35%
-            )
-        `
-    },
-
-    content: {
-
-        position: "relative",
-
-        zIndex: 2,
-
-        maxWidth: "1200px",
-
-        margin: "0 auto"
-    },
-
-    header: {
-
-        textAlign: "center",
-
-        marginBottom: "50px"
-    },
-
-    heading: {
-
-        color: "#ffffff",
-
-        fontSize: "55px",
-
-        fontWeight: "900",
-
-        letterSpacing: "4px",
-
-        marginBottom: "10px"
-    },
-
-    subtitle: {
-
-        color: "#d1d5db",
-
-        fontSize: "18px"
-    },
-
-    emptyBox: {
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        padding: "50px",
-
-        borderRadius: "24px",
-
-        textAlign: "center"
-    },
-
-    emptyText: {
-
-        color: "#ffffff",
-
-        fontSize: "32px",
-
-        marginBottom: "12px"
-    },
-
-    emptySubText: {
-
-        color: "#9ca3af",
-
-        fontSize: "16px"
-    },
-
-    cartContainer: {
-
-        display: "flex",
-
-        flexDirection: "column",
-
-        gap: "25px"
-    },
-
-    card: {
-
-        background: "rgba(20,20,25,0.80)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        borderRadius: "22px",
-
-        padding: "28px",
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center"
-    },
-
-    productName: {
-
-        color: "#ffffff",
-
-        fontSize: "26px",
-
-        marginBottom: "10px"
-    },
-
-    quantity: {
-
-        color: "#cbd5e1",
-
-        fontSize: "16px"
-    },
-
-    priceBox: {
-
-        color: "#22c55e",
-
-        fontSize: "26px",
-
-        fontWeight: "bold"
-    },
-
-    totalBox: {
-
-        marginTop: "40px",
-
-        background: "rgba(20,20,25,0.82)",
-
-        border:
-            "1px solid rgba(255,255,255,0.08)",
-
-        borderRadius: "24px",
-
-        padding: "35px",
-
-        display: "flex",
-
-        justifyContent: "space-between",
-
-        alignItems: "center"
-    },
-
-    totalText: {
-
-        color: "#ffffff",
-
-        fontSize: "22px",
-
-        marginBottom: "8px"
-    },
-
-    totalPrice: {
-
-        color: "#22c55e",
-
-        fontSize: "38px",
-
-        fontWeight: "900"
-    },
-
-    orderBtn: {
-
-        padding: "16px 34px",
-
-        border: "none",
-
-        borderRadius: "14px",
-
-        background:
-            "linear-gradient(135deg, #22c55e, #16a34a)",
-
-        color: "#ffffff",
-
-        fontSize: "17px",
-
-        fontWeight: "bold",
-
-        cursor: "pointer"
+function Cart() {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState(null);
+
+  const busyRef = useRef(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await API.get("/cart");
+      setRows(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      if (err.response?.status === 401) return; // interceptor redirects
+      setError("We could not load your cart. Please refresh and try again.");
+      setRows([]);
     }
-};
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const lines = useMemo(
+    () => (rows ? mergeByProduct(rows) : []),
+    [rows]
+  );
+
+  const itemCount = useMemo(
+    () => lines.reduce((n, l) => n + l.quantity, 0),
+    [lines]
+  );
+
+  const subtotal = useMemo(
+    () => lines.reduce((n, l) => n + l.price * l.quantity, 0),
+    [lines]
+  );
+
+  const shipping = subtotal > 0 && subtotal < 50 ? 4.99 : 0;
+  const total = subtotal + shipping;
+
+  /* Each click is one more unit on the server. Because display merges rows,
+     a negative delta simply cancels one of them back out. Guarded so the
+     visible quantity never drops below one. */
+  const changeQuantity = async (productId, delta) => {
+    if (busyRef.current) return;
+
+    busyRef.current = true;
+    setBusy(productId);
+
+    try {
+      await API.post("/cart/add", { productId, quantity: delta });
+
+      const res = await API.get("/cart");
+
+      setRows(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      toast.error("Could not update your cart");
+    } finally {
+      busyRef.current = false;
+      setBusy(null);
+    }
+  };
+
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true);
+
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+
+  const placeOrder = async () => {
+    if (paying || !lines.length) return;
+
+    setPaying(true);
+
+    try {
+      const loaded = await loadRazorpayScript();
+
+      if (!loaded) {
+        toast.error("Could not reach the payment provider");
+        return;
+      }
+
+      const res = await API.post("/payment/create-order", {
+        amount: Math.round(subtotal),
+      });
+
+      const order = res.data;
+
+      const payment = new window.Razorpay({
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        name: "GameStore",
+        description: "Order payment",
+        order_id: order.id,
+        prefill: { name: "Gaming Customer" },
+        theme: { color: "#0070d1" },
+        handler: async () => {
+          try {
+            await API.post("/order/place");
+            toast.success("Order placed");
+            setRows([]);
+          } catch {
+            toast.success("Payment received");
+          }
+        },
+        modal: {
+          ondismiss: () => setPaying(false),
+        },
+      });
+
+      payment.on("payment.failed", () => {
+        toast.error("Payment failed");
+        setPaying(false);
+      });
+
+      payment.open();
+    } catch (err) {
+      toast.error(
+        err.response?.status === 401
+          ? "Please log in again"
+          : "Payment could not be started"
+      );
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (rows === null) {
+    return (
+      <div className="page">
+        <main className="main">
+          <div className="loading">
+            <span className="spinner" aria-hidden="true" />
+            <span>Loading your cart…</span>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <main className="main">
+        <div className="shell">
+          <header className="section-head">
+            <div>
+              <span className="eyebrow">Your bag</span>
+              <h1>Shopping cart</h1>
+              <p>
+                {lines.length
+                  ? `${itemCount} item${itemCount === 1 ? "" : "s"} ready to check out`
+                  : "Nothing here yet"}
+              </p>
+            </div>
+          </header>
+
+          {error ? <p className="notice notice--warn">{error}</p> : null}
+
+          {lines.length === 0 ? (
+            <div className="empty">
+              <h3>Your cart is empty</h3>
+              <p>Browse the store and add something you like.</p>
+              <a
+                className="btn btn--sm"
+                style={{ marginTop: 14 }}
+                href="/"
+              >
+                Continue shopping
+              </a>
+            </div>
+          ) : (
+            <div className="cart-layout">
+              <section className="panel" aria-label="Cart items">
+                <div className="panel__head">
+                  {itemCount} item{itemCount === 1 ? "" : "s"}
+                </div>
+
+                {lines.map((line) => {
+                  const isBusy = busy === line.productId;
+
+                  return (
+                    <article className="line" key={line.productId}>
+                      <div className="line__media">
+                        <img
+                          src={line.imageUrl || PLACEHOLDER}
+                          alt={line.productName}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+
+                      <div>
+                        <h3 className="line__name">{line.productName}</h3>
+
+                        <p className="line__unit">
+                          {formatPrice(line.price)} each
+                        </p>
+
+                        <div className="line__qty">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              changeQuantity(line.productId, -1)
+                            }
+                            disabled={isBusy || line.quantity <= 1}
+                            aria-label={`Remove one ${line.productName}`}
+                          >
+                            &minus;
+                          </button>
+
+                          <span aria-live="polite">
+                            {isBusy ? (
+                              <span
+                                className="spinner spinner--sm"
+                                style={{
+                                  display: "inline-block",
+                                  verticalAlign: "middle",
+                                }}
+                              />
+                            ) : (
+                              line.quantity
+                            )}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              changeQuantity(line.productId, 1)
+                            }
+                            disabled={isBusy}
+                            aria-label={`Add one more ${line.productName}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="line__total price">
+                        {formatPrice(line.price * line.quantity)}
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+
+              <aside className="panel summary" aria-label="Order summary">
+                <div className="panel__head">Order summary</div>
+
+                <div style={{ padding: "16px 20px 20px" }}>
+                  <div className="summary__row">
+                    <span>Subtotal</span>
+                    <span>{formatPrice(subtotal)}</span>
+                  </div>
+
+                  <div className="summary__row">
+                    <span>Shipping</span>
+                    <span>
+                      {shipping === 0 ? "Free" : formatPrice(shipping)}
+                    </span>
+                  </div>
+
+                  <div className="summary__total">
+                    <span>Total</span>
+                    <span className="price price--lg">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn--block"
+                    style={{ marginTop: 16 }}
+                    onClick={placeOrder}
+                    disabled={paying}
+                  >
+                    {paying ? (
+                      <>
+                        <span
+                          className="spinner spinner--sm"
+                          aria-hidden="true"
+                        />
+                        Processing…
+                      </>
+                    ) : (
+                      "Pay now"
+                    )}
+                  </button>
+
+                  <p className="summary__note">
+                    Demo store. Payments run in Razorpay test mode and no real
+                    money moves.
+                  </p>
+                </div>
+              </aside>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 export default Cart;

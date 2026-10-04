@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { ToastContainer } from "react-toastify";
@@ -23,6 +24,19 @@ import DeleteProduct from "./pages/DeleteProduct";
 import AdminOrders from "./pages/AdminOrders";
 
 function App() {
+
+  // Fade out the pre-React splash only once the tree is actually on screen.
+  useEffect(() => {
+    const boot = document.getElementById("boot");
+
+    if (!boot) return;
+
+    boot.classList.add("is-done");
+
+    const timer = setTimeout(() => boot.remove(), 260);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
 

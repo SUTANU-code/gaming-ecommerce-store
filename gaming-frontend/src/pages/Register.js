@@ -2,143 +2,127 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import API from "../api/axios"; 
+import API from "../api/axios";
 
 function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  const register = async () => {
-    try {
-      await API.post("/auth/signup", {
-        name,
-        email,
-        password
-      });
+  const register = async (e) => {
+    e.preventDefault();
 
-      toast.success("Registration successful");
-      navigate("/login");
+    if (busy) return;
+    setBusy(true);
+
+    try {
+      await API.post("/auth/signup", { name, email, password });
+
+      toast.success("Account created — sign in to continue");
+      navigate("/login", { replace: true });
     } catch (err) {
-      console.log(err);
-      toast.error("Registration failed");
+      const status = err.response?.status;
+
+      toast.error(
+        status === 409 || status === 400
+          ? "That email is already registered"
+          : "Could not create the account"
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Create Account</h1>
-        <p style={styles.subtitle}>Join GameStore</p>
+    <div className="auth">
+      <form className="auth__card" onSubmit={register}>
+        <h1>Create account</h1>
+        <p className="auth__sub">It takes about twenty seconds.</p>
 
-        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "15px" }}>
-          Demo project. Please use a test password, not one you use elsewhere.
+        <p className="auth__note">
+          Demo store — use a throwaway password, not one you reuse.
         </p>
 
-        <input
-          id="register-name"
-          name="name"
-          type="text"
-          autoComplete="name"
-          placeholder="Enter Name"
-          style={styles.input}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div style={{ marginBottom: 12 }}>
+          <label
+            htmlFor="register-name"
+            style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+          >
+            Full name
+          </label>
+          <input
+            id="register-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            required
+            className="field"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
 
-        <input
-          id="register-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter Email"
-          style={styles.input}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div style={{ marginBottom: 12 }}>
+          <label
+            htmlFor="register-email"
+            style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+          >
+            Email
+          </label>
+          <input
+            id="register-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className="field"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          id="register-password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Enter Password"
-          style={styles.input}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div style={{ marginBottom: 20 }}>
+          <label
+            htmlFor="register-password"
+            style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+          >
+            Password
+          </label>
+          <input
+            id="register-password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            className="field"
+            placeholder="At least 6 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-        <button style={styles.button} onClick={register}>
-          Register
+        <button type="submit" className="btn btn--block" disabled={busy}>
+          {busy ? (
+            <>
+              <span className="spinner spinner--sm" aria-hidden="true" />
+              Creating account…
+            </>
+          ) : (
+            "Create account"
+          )}
         </button>
 
-        <p style={styles.text}>
-          Already have an account?
-          <Link style={styles.link} to="/login">Login</Link>
+        <p className="auth__foot">
+          Already registered? <Link to="/login">Sign in</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#111827"
-  },
-
-  card: {
-    width: "350px",
-    backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "10px",
-    boxShadow: "0px 0px 15px rgba(0,0,0,0.3)",
-    textAlign: "center"
-  },
-
-  title: {
-    marginBottom: "10px"
-  },
-
-  subtitle: {
-    marginBottom: "25px",
-    color: "gray"
-  },
-
-  input: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    borderRadius: "5px",
-    border: "1px solid #ccc",
-    fontSize: "16px"
-  },
-
-  button: {
-    width: "100%",
-    padding: "12px",
-    border: "none",
-    borderRadius: "5px",
-    backgroundColor: "#111827",
-    color: "white",
-    fontSize: "16px",
-    cursor: "pointer"
-  },
-
-  text: {
-    marginTop: "15px"
-  },
-
-  link: {
-    marginLeft: "5px",
-    color: "blue",
-    textDecoration: "none",
-    fontWeight: "bold"
-  }
-};
 
 export default Register;

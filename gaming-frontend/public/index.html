@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#111827" />
+    <meta name="theme-color" content="#ffffff" />
     <title>GameStore | Gaming Store Demo Project</title>
     <meta
       name="description"
@@ -20,9 +20,69 @@
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <style>
+      /* Shown until React mounts, so a slow bundle never leaves a white void. */
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        transition: opacity 0.25s ease;
+      }
+
+      #boot.is-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot .b-spin {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto;
+        border: 3px solid #e5e6ea;
+        border-top-color: #0070d1;
+        border-radius: 50%;
+        animation: b-spin 0.7s linear infinite;
+      }
+
+      #boot .b-text {
+        margin-top: 14px;
+        font: 500 14px "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #74767f;
+        text-align: center;
+      }
+
+      @keyframes b-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #boot .b-spin {
+          animation-duration: 0.001ms;
+        }
+      }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div id="boot" role="status" aria-live="polite">
+      <div>
+        <div class="b-spin"></div>
+        <div class="b-text">Loading GameStore…</div>
+      </div>
+    </div>
+
     <div id="root"></div>
   </body>
 </html>

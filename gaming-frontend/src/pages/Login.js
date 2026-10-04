@@ -2,133 +2,108 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import API from "../api/axios"; 
+import API from "../api/axios";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  const login = async () => {
+  const login = async (e) => {
+    e.preventDefault();
+
+    if (busy) return;
+    setBusy(true);
+
     try {
-      const res = await API.post("/auth/login", {
-        email,
-        password
-      });
+      const res = await API.post("/auth/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
 
-      toast.success("Login successful");
-      navigate("/");
+      toast.success("Welcome back");
+      navigate("/", { replace: true });
     } catch (err) {
-      console.log(err);
-      toast.error("Login failed");
+      const status = err.response?.status;
+
+      toast.error(
+        status === 401
+          ? "That email and password do not match"
+          : "Could not sign in. Try again."
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>GameStore</h1>
-        <p style={styles.subtitle}>Login to continue</p>
+    <div className="auth">
+      <form className="auth__card" onSubmit={login}>
+        <h1>Sign in</h1>
+        <p className="auth__sub">Access your cart and order history.</p>
 
-        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "15px" }}>
-          Demo project. Please use a test password, not one you use elsewhere.
+        <p className="auth__note">
+          Demo store — use a throwaway password, not one you reuse.
         </p>
 
-        <input
-          id="login-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter Email"
-          style={styles.input}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div style={{ marginBottom: 12 }}>
+          <label
+            htmlFor="login-email"
+            style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+          >
+            Email
+          </label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className="field"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          id="login-password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="Enter Password"
-          style={styles.input}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div style={{ marginBottom: 20 }}>
+          <label
+            htmlFor="login-password"
+            style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+          >
+            Password
+          </label>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className="field"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-        <button style={styles.button} onClick={login}>
-          Login
+        <button type="submit" className="btn btn--block" disabled={busy}>
+          {busy ? (
+            <>
+              <span className="spinner spinner--sm" aria-hidden="true" />
+              Signing in…
+            </>
+          ) : (
+            "Sign in"
+          )}
         </button>
 
-        <p style={styles.text}>
-          Don't have an account?
-          <Link style={styles.link} to="/register">Register</Link>
+        <p className="auth__foot">
+          New to GameStore? <Link to="/register">Create an account</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#111827"
-  },
-
-  card: {
-    width: "350px",
-    backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "10px",
-    boxShadow: "0px 0px 15px rgba(0,0,0,0.3)",
-    textAlign: "center"
-  },
-
-  title: {
-    marginBottom: "10px"
-  },
-
-  subtitle: {
-    marginBottom: "25px",
-    color: "gray"
-  },
-
-  input: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    borderRadius: "5px",
-    border: "1px solid #ccc",
-    fontSize: "16px"
-  },
-
-  button: {
-    width: "100%",
-    padding: "12px",
-    border: "none",
-    borderRadius: "5px",
-    backgroundColor: "#111827",
-    color: "white",
-    fontSize: "16px",
-    cursor: "pointer"
-  },
-
-  text: {
-    marginTop: "15px"
-  },
-
-  link: {
-    marginLeft: "5px",
-    color: "blue",
-    textDecoration: "none",
-    fontWeight: "bold"
-  }
-};
 
 export default Login;

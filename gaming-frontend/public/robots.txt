@@ -1,0 +1,11 @@
+# Disallow indexing because this is a demo/portfolio project with payment flows.
+# This prevents Safe Browsing scanners from mistaking it for a real phishing/payment site.
+User-agent: *
+Disallow: /login
+Disallow: /register
+Disallow: /cart
+Disallow: /orders
+Disallow: /admin
+
+# Allow the root (products page) so it can be seen as a legitimate portfolio demo
+Allow: /

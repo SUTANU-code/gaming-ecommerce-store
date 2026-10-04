@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-// 🔄 FIX: Change raw axios import to your custom centralized configuration client
 import API from "../api/axios"; 
 
 function Register() {
@@ -13,7 +12,6 @@ function Register() {
 
   const register = async () => {
     try {
-      // 🔄 FIX: Use API instance with clean relative signup endpoints
       await API.post("/auth/signup", {
         name,
         email,
@@ -39,25 +37,35 @@ function Register() {
         </p>
 
         <input
+          id="register-name"
+          name="name"
           type="text"
+          autoComplete="name"
           placeholder="Enter Name"
           style={styles.input}
+          value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
         <input
+          id="register-email"
+          name="email"
           type="email"
           autoComplete="email"
           placeholder="Enter Email"
           style={styles.input}
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
+          id="register-password"
+          name="password"
           type="password"
           autoComplete="new-password"
           placeholder="Enter Password"
           style={styles.input}
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
@@ -75,7 +83,6 @@ function Register() {
 }
 
 const styles = {
-
   container: {
     height: "100vh",
     display: "flex",

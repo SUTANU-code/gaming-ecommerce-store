@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-
 import API from "../api/axios"; 
 
 function Login() {
@@ -12,7 +11,6 @@ function Login() {
 
   const login = async () => {
     try {
-      // 🔄 FIX: Use API instance with clean relative authentication endpoints
       const res = await API.post("/auth/login", {
         email,
         password
@@ -40,18 +38,24 @@ function Login() {
         </p>
 
         <input
+          id="login-email"
+          name="email"
           type="email"
           autoComplete="email"
           placeholder="Enter Email"
           style={styles.input}
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
+          id="login-password"
+          name="password"
           type="password"
           autoComplete="current-password"
           placeholder="Enter Password"
           style={styles.input}
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
@@ -69,7 +73,6 @@ function Login() {
 }
 
 const styles = {
-
   container: {
     height: "100vh",
     display: "flex",

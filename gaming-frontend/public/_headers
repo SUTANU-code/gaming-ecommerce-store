@@ -1,0 +1,22 @@
+# Security headers + cache rules.
+# Cloudflare Pages and Netlify read these files. Vercel uses vercel.json instead.
+# Create React App copies everything in public/ into build/, so these end up in
+# the root of the deployed output where both platforms look for them.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-XSS-Protection: 1; mode=block
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://*.razorpay.com; connect-src 'self' https://gaming-ecommerce-store-8.onrender.com https://*.onrender.com https://api.razorpay.com https://*.razorpay.com https:; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com;
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Create React App fingerprints these filenames, so they are safe to cache forever.
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
